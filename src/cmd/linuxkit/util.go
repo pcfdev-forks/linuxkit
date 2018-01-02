@@ -166,6 +166,15 @@ type DiskConfig struct {
 	Path   string
 	Size   int
 	Format string
+	Trim   bool
+	Type   string
+
+	QcowToolPath       string
+	QcowOnFlush        string
+	QcowCompactAfter   int
+	QcowKeepErased     int
+	QcowRuntimeAsserts bool
+	QcowStats          string
 }
 
 // Disks is the type for a list of DiskConfig
@@ -189,6 +198,8 @@ func (l *Disks) Set(value string) error {
 			switch c[0] {
 			case "file":
 				d.Path = c[1]
+			case "type":
+				d.Type = c[1]
 			case "size":
 				size, err := getDiskSizeMB(c[1])
 				if err != nil {
@@ -197,6 +208,36 @@ func (l *Disks) Set(value string) error {
 				d.Size = size
 			case "format":
 				d.Format = c[1]
+			case "trim":
+				trim, err := strconv.ParseBool(c[1])
+				if err != nil {
+					return err
+				}
+				d.Trim = trim
+			case "qcow-tool":
+				d.QcowToolPath = c[1]
+			case "qcow-onflush":
+				d.QcowOnFlush = c[1]
+			case "qcow-compactafter":
+				compact, err := strconv.ParseInt(c[1], 10, 64)
+				if err != nil {
+					return err
+				}
+				d.QcowCompactAfter = int(compact)
+			case "qcow-keeperased":
+				keep, err := strconv.ParseInt(c[1], 10, 64)
+				if err != nil {
+					return err
+				}
+				d.QcowKeepErased = int(keep)
+			case "qcow-runtimeasserts":
+				asserts, err := strconv.ParseBool(c[1])
+				if err != nil {
+					return err
+				}
+				d.QcowRuntimeAsserts = asserts
+			case "qcow-stats":
+				d.QcowStats = c[1]
 			default:
 				return fmt.Errorf("Unknown disk config: %s", c[0])
 			}

@@ -200,12 +200,49 @@ func runHyperKit(args []string) {
 			id = strconv.Itoa(i)
 		}
 		if d.Size != 0 && d.Path == "" {
-			d.Path = filepath.Join(*state, "disk"+id+".img")
+			if d.Type == "qcow" {
+				d.Path = filepath.Join(*state, "disk"+id+".qcow2")
+			} else {
+				d.Path = filepath.Join(*state, "disk"+id+".img")
+			}
 		}
 		if d.Path == "" {
 			log.Fatalf("disk specified with no size or name")
 		}
-		hd := hyperkit.DiskConfig{Path: d.Path, Size: d.Size}
+
+		hd, err := hyperkit.NewDisk(d.Path, d.Size)
+
+		if err != nil {
+			log.Fatalln("Unable to create hyperkit disk: ", err)
+		}
+
+		switch disk := hd.(type) {
+		case *hyperkit.RawDisk:
+			disk.Format = d.Format
+			disk.Trim = d.Trim
+		case *hyperkit.QcowDisk:
+			disk.Format = d.Format
+			disk.Trim = d.Trim
+			disk.OnFlush = d.QcowOnFlush
+			disk.CompactAfter = d.QcowCompactAfter
+			disk.KeepErased = d.QcowKeepErased
+			disk.RuntimeAsserts = d.QcowRuntimeAsserts
+			disk.Stats = d.QcowStats
+
+			// filepath has to be absolute
+			disk.Path, err = filepath.Abs(d.Path)
+			if err != nil {
+				log.Fatalln("Unable to get absolute disk path: ", err)
+			}
+
+			if d.QcowToolPath != "" {
+				disk.QcowToolPath, err = filepath.Abs(d.QcowToolPath)
+				if err != nil {
+					log.Fatalln("Unable to get absolute qcow-tool path: ", err)
+				}
+			}
+		}
+
 		h.Disks = append(h.Disks, hd)
 	}
 
