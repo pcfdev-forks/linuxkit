@@ -87,8 +87,9 @@ func NewDisk(spec string, size int) (Disk, error) {
 		}, nil
 	case DiskFormatQcow:
 		return &QcowDisk{
-			Path: path,
-			Size: size,
+			Path:         path,
+			Size:         size,
+			CompressDisk: true,
 		}, nil
 	}
 	return nil, fmt.Errorf("impossible")
@@ -257,6 +258,7 @@ type QcowDisk struct {
 	QcowToolPath   string
 	OnFlush        string
 	CompactAfter   int
+	CompressDisk   bool
 	KeepErased     int
 	RuntimeAsserts bool
 	Stats          string
@@ -309,7 +311,12 @@ func (d *QcowDisk) Ensure() error {
 
 // Create a disk with the given size in MiB
 func (d *QcowDisk) create() error {
-	_, err := run(d.QcowTool("create", "--size", fmt.Sprintf("%dMiB", d.Size)))
+	log.Infof("Create %q", d)
+	args := []string{"--size", fmt.Sprintf("%dMiB", d.Size)}
+	if d.CompressDisk {
+		args = append(args, "-c")
+	}
+	_, err := run(d.QcowTool("create", args...))
 	return err
 }
 
